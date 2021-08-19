@@ -1,1 +1,1 @@
-# recibospagos
+# recibopago
