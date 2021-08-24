@@ -18,9 +18,7 @@
 
     'data': [
         'views/account_payment_view.xml',
-        'views/recibopago_views.xml',
+        'views/recibo_pago_views.xml',
         'security/ir.model.access.csv',
-        # 'views/recibopago_views.xml',
-        # 'views/product_template_views.xml',
     ],
 }
