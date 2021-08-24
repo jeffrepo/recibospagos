@@ -1,0 +1,103 @@
+<odoo>
+    <data>
+
+        <record id="view_recibo_pago_form" model="ir.ui.view">
+            <field name="name">recibo.pago.form</field>
+            <field name="model">recibo.pago</field>
+            <field name="arch" type="xml">
+                <form string="Gnerar pagos">
+                    <header>
+                        <field name="estado" widget="statusbar" statusbar_visible="nuevo,validado"/>
+                        <button name="pagar" string="Validar"  type="object" class="btn-primary"/>
+                        <button name="cancelar_pagos" string="Cancelar"  type="object" class="btn-primary"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="cliente_id" attrs="{'readonly':[('estado','=','validado')]}" />
+                            </h1>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="fecha" attrs="{'readonly':[('estado','=','validado')]}"/>
+                                <field name="diario_id" domain="[('type', '=', 'bank')]" attrs="{'readonly':[('estado','=','validado')]}"/>
+                            </group>
+                            <group>
+                                <!-- <field name="empleado_id"/> -->
+                                <field name="pagar_todas" attrs="{'readonly':[('estado','=','validado')]}"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Facturas" name="recibopago_facturas">
+                                <group>
+                                    <field name="linea_pago_ids" mode="tree" attrs="{'readonly':[('estado','=','validado')]}">
+                                        <tree string="Lineas" editable="bottom">
+                                            <field name="factura_id"/>
+                                            <field name="fecha_factura"/>
+                                            <field name="total" sum="Total"/>
+                                            <field name="saldo"/>
+                                            <field name="pago" sum="Total"/>
+                                            <field name="pagar_completa"/>
+                                        </tree>
+                                    </field>
+                                </group>
+                            </page>
+                            <page string="Pagos" name="recibopago_pagos">
+                                <group>
+                                    <field name="pago_ids"/>
+                                </group>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+
+        <record id="view_recibo_pago_tree" model="ir.ui.view">
+            <field name="name">recibo.pago.tree</field>
+            <field name="model">recibo.pago</field>
+            <field name="priority">2</field>
+            <field name="arch" type="xml">
+                <tree string="Pagos">
+                    <field name="cliente_id"/>
+                    <!-- <field name="empleado_id"/> -->
+                    <field name="diario_id"/>
+                    <field name="fecha"/>
+                    <field name="total"/>
+                    <!-- <field name="pago_id"/> -->
+                </tree>
+            </field>
+        </record>
+
+
+        <record id="action_recibo_pago" model="ir.actions.act_window">
+            <field name="name">Recibos de pago</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">recibo.pago</field>
+            <field name="view_mode">tree,form</field>
+            <field name="context">{}</field>
+            <field name="domain">[]</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    CCrea un nuevo recibo de pago
+                </p><p>
+
+                </p>
+            </field>
+        </record>
+
+        <record id="action_recibo_pago_tree" model="ir.actions.act_window.view">
+            <field name="sequence" eval="1"/>
+            <field name="view_mode">tree</field>
+            <field name="view_id" ref="view_recibo_pago_tree"/>
+            <field name="act_window_id" ref="action_recibo_pago"/>
+        </record>
+
+        <menuitem id="menu_recibo_pago"
+            name="Recibos de pago"
+            action="action_recibo_pago"
+            parent="account.menu_finance_receivables"
+            sequence="1" groups="account.group_account_invoice"/>
+    </data>
+</odoo>
