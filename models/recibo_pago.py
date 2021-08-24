@@ -2,6 +2,7 @@
 
 from odoo import models, fields, api
 from datetime import datetime
+from odoo.release import version_info
 import logging
 
 class RaciboPago(models.Model):
@@ -53,15 +54,25 @@ class RaciboPago(models.Model):
                         else:
                             factura_id = linea.factura_id.id
 
-                        pago_id= self.env['account.payment'].create({'amount': linea.pago,
-                                                    'partner_id': self.cliente_id.id,
-                                                    'date': self.fecha,
-                                                    'partner_type': 'customer',
-                                                    'payment_type': 'inbound',
-                                                    'reconciled_invoice_ids': [(4,factura_id)],
-                                                    'journal_id': self.diario_id.id,
-                                                    'payment_method_id': 1})
-                        pago_id.action_post()
+                        pago_dic = {'amount': linea.pago,
+                                    'partner_id': self.cliente_id.id,
+                                    'partner_type': 'customer',
+                                    'payment_type': 'inbound',
+                                    'journal_id': self.diario_id.id,
+                                    'payment_method_id': 1}
+
+                        if version_info[0] == 13:
+                            pago_dic['payment_date'] = self.fecha
+                            pago_dic['invoice_ids'] = [(4,factura_id)]
+                        else:
+                            pago_dic['date'] = self.fecha
+                            pago_dic['reconciled_invoice_ids'] = [(4,factura_id)]
+
+                        pago_id= self.env['account.payment'].create(pago_dic)
+                        if version_info[0] == 13:
+                            pago_id.post()
+                        else:
+                            pago_id.action_post()
                         pago_id.pago_origen_id = self.id
                         pagos.append(pago_id.id)
             self.update({
@@ -72,7 +83,11 @@ class RaciboPago(models.Model):
     @api.onchange('cliente_id')
     def onchange_cliente_id(self):
         if self.cliente_id:
-            factura_ids = self.env['account.move'].search([('partner_id','=',self.cliente_id.id),('state','=','posted'),('move_type','=','out_invoice')]).ids
+            dominio = [('partner_id','=',self.cliente_id.id),('state','=','posted'),('move_type','=','out_invoice')]
+            if version_info[0] == 13:
+                dominio = [('partner_id','=',self.cliente_id.id),('state','=','posted'),('type','=','out_invoice')]
+
+            factura_ids = self.env['account.move'].search(dominio).ids
             if factura_ids:
                 facturas = []
                 for factura in factura_ids:
@@ -96,12 +111,20 @@ class ReciboPagoLinea(models.Model):
     @api.depends('total')
     def _compute_total(self):
         for linea in self:
-            if linea.factura_id.move_type in ['in_refund', 'out_refund'] :
-                linea.saldo = linea.factura_id.amount_residual * -1
-                linea.total = linea.factura_id.amount_total * -1
+            if version_info[0] == 13:
+                if linea.factura_id.type in ['in_refund', 'out_refund'] :
+                    linea.saldo = linea.factura_id.amount_residual * -1
+                    linea.total = linea.factura_id.amount_total * -1
+                else:
+                    linea.saldo = linea.factura_id.amount_residual * 1
+                    linea.total = linea.factura_id.amount_total * 1
             else:
-                linea.saldo = linea.factura_id.amount_residual * 1
-                linea.total = linea.factura_id.amount_total * 1
+                if linea.factura_id.move_type in ['in_refund', 'out_refund'] :
+                    linea.saldo = linea.factura_id.amount_residual * -1
+                    linea.total = linea.factura_id.amount_total * -1
+                else:
+                    linea.saldo = linea.factura_id.amount_residual * 1
+                    linea.total = linea.factura_id.amount_total * 1
 
     recibo_id = fields.Many2one('recibo.pago','Recibo de pago')
     factura_id = fields.Many2one('account.move','Factura')
