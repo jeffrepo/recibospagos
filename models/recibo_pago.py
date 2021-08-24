@@ -35,7 +35,7 @@ class RaciboPago(models.Model):
     def cancelar_pagos(self):
         if self.pago_ids:
             for linea in self.pago_ids:
-                linea.cancel()
+                linea.action_draft()
             self.estado = 'nuevo'
 
     def pagar(self):
@@ -73,16 +73,15 @@ class RaciboPago(models.Model):
     def onchange_cliente_id(self):
         if self.cliente_id:
             factura_ids = self.env['account.move'].search([('partner_id','=',self.cliente_id.id),('state','=','posted'),('move_type','=','out_invoice')]).ids
-            logging.warning(factura_ids)
             if factura_ids:
-                logging.warning(factura_ids)
                 facturas = []
                 for factura in factura_ids:
                     facturas.append((0,0,{'factura_id': factura}))
 
-                self.update({
-                    'linea_pago_ids': facturas,
+                self.write({
+                    'linea_pago_ids' : [(5, 0, 0)],
                 })
+                self.write({'linea_pago_ids' : facturas})
 
     @api.onchange('pagar_todas')
     def onchange_pagar_todas(self):
@@ -96,12 +95,13 @@ class ReciboPagoLinea(models.Model):
 
     @api.depends('total')
     def _compute_total(self):
-        if self.factura_id.move_type in ['in_refund', 'out_refund'] :
-            self.saldo = self.factura_id.amount_residual * -1
-            self.total = self.factura_id.amount_total * -1
-        else:
-            self.saldo = self.factura_id.amount_residual * 1
-            self.total = self.factura_id.amount_total * 1
+        for linea in self:
+            if linea.factura_id.move_type in ['in_refund', 'out_refund'] :
+                linea.saldo = linea.factura_id.amount_residual * -1
+                linea.total = linea.factura_id.amount_total * -1
+            else:
+                linea.saldo = linea.factura_id.amount_residual * 1
+                linea.total = linea.factura_id.amount_total * 1
 
     recibo_id = fields.Many2one('recibo.pago','Recibo de pago')
     factura_id = fields.Many2one('account.move','Factura')
@@ -114,4 +114,5 @@ class ReciboPagoLinea(models.Model):
 
     @api.onchange('pagar_completa')
     def onchange_pagar_completa(self):
-        self.pago = self.saldo
+        for linea in self:
+            linea.pago = linea.saldo
