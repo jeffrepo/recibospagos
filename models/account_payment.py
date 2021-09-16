@@ -13,6 +13,9 @@ class AccountPayment(models.Model):
     def onchange_pago_liquidacion_ids(self):
         total = 0
         if self.pago_liquidacion_ids:
+            if version_info[0] == 14:
+                cuenta_destino_id = self.pago_liquidacion_ids[0].diario_id.default_account_id
+                self.destination_account_id = cuenta_destino_id.id
             for pago in self.pago_liquidacion_ids:
                 if pago.linea_pago_ids:
                     for linea in pago.linea_pago_ids:
@@ -35,3 +38,13 @@ class AccountPayment(models.Model):
                     for pago in rec.pago_liquidacion_ids:
                         pago.write({'pago_origen_id': rec.id})
             return True
+
+        @api.depends('partner_id', 'destination_account_id', 'journal_id')
+        def _compute_is_internal_transfer(self):
+            res = super(AccountPayment, self)._compute_is_internal_transfer()
+            for payment in self:
+                if payment.pago_liquidacion_ids:
+                    payment.is_internal_transfer = True
+                    cuenta_destino_id = payment.pago_liquidacion_ids[0].diario_id.default_account_id
+                    payment.destination_account_id = cuenta_destino_id.id
+            return res
