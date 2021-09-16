@@ -28,7 +28,7 @@ class AccountPayment(models.Model):
             for rec in self:
                 if rec.pago_liquidacion_ids:
                     for pago in rec.pago_liquidacion_ids:
-                        pago.write({'pago_origen_id': rec.id})
+                        pago.write({'pago_id': rec.id})
             return True
     else:
         def action_post(self):
@@ -36,7 +36,7 @@ class AccountPayment(models.Model):
             for rec in self:
                 if rec.pago_liquidacion_ids:
                     for pago in rec.pago_liquidacion_ids:
-                        pago.write({'pago_origen_id': rec.id})
+                        pago.write({'pago_id': rec.id})
             return True
 
         @api.depends('partner_id', 'destination_account_id', 'journal_id')
