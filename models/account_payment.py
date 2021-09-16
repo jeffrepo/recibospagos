@@ -39,7 +39,7 @@ class AccountPayment(models.Model):
                         pago.write({'pago_id': rec.id})
             return True
 
-        @api.depends('partner_id', 'destination_account_id', 'journal_id')
+        @api.depends('partner_id', 'destination_account_id', 'journal_id','pago_liquidacion_ids')
         def _compute_is_internal_transfer(self):
             res = super(AccountPayment, self)._compute_is_internal_transfer()
             for payment in self:
