@@ -83,7 +83,7 @@ class RaciboPago(models.Model):
     @api.onchange('cliente_id')
     def onchange_cliente_id(self):
         if self.cliente_id:
-            dominio = [('partner_id','=',self.cliente_id.id),('state','=','posted'),('move_type','=','out_invoice')]
+            dominio = [('partner_id','=',self.cliente_id.id),('state','=','posted'),('move_type','=','out_invoice'),('amount_residual','>',0)]
             if version_info[0] == 13:
                 dominio = [('partner_id','=',self.cliente_id.id),('state','=','posted'),('type','=','out_invoice')]
 
