@@ -24,6 +24,7 @@
                             </group>
                             <group>
                                 <!-- <field name="empleado_id"/> -->
+                                <field name="numero_recibo"/>
                                 <field name="pagar_todas" attrs="{'readonly':[('estado','=','validado')]}"/>
                             </group>
                         </group>

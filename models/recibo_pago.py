@@ -22,6 +22,7 @@ class RaciboPago(models.Model):
         ('validado', 'Validado'),
         ], string='Estado', readonly=True, copy=False, index=True, track_visibility='onchange', default='nuevo')
     pago_id = fields.Many2one('account.payment','Pago')
+    numero_recibo = fields.Char('Número de recibo')
 
     @api.depends('linea_pago_ids.pago')
     def _calcular_total(self):
@@ -41,6 +42,12 @@ class RaciboPago(models.Model):
 
     def pagar(self):
         pago_id = False
+        cuentas = self.env['account.account'].search([])
+        for c in cuentas:
+            if c.user_type_id.type == 'payable':
+                logging.warning('cuenta')
+                logging.warning(c.name)
+
         if self.linea_pago_ids:
             pagos = []
             existe_pago = self.env['account.payment'].search([('pago_origen_id','=',self.id),('state','=','posted')])
@@ -50,9 +57,9 @@ class RaciboPago(models.Model):
                         factura_id = False
                         if linea.factura_id.source_id:
                             factura_original_id = self.env['account.move'].search([('source_id','=',linea.factura_id.source_id.id)])
-                            factura_id = factura_original_id.id
+                            factura_id = factura_original_id
                         else:
-                            factura_id = linea.factura_id.id
+                            factura_id = linea.factura_id
 
                         pago_dic = {'amount': linea.pago,
                                     'partner_id': self.cliente_id.id,
@@ -63,16 +70,25 @@ class RaciboPago(models.Model):
 
                         if version_info[0] == 13:
                             pago_dic['payment_date'] = self.fecha
-                            pago_dic['invoice_ids'] = [(4,factura_id)]
                         else:
                             pago_dic['date'] = self.fecha
-                            pago_dic['reconciled_invoice_ids'] = [(4,factura_id)]
 
                         pago_id= self.env['account.payment'].create(pago_dic)
                         if version_info[0] == 13:
                             pago_id.post()
+                            for linea_gasto in pago_id.move_line_ids.filtered(lambda r: r.account_id.user_type_id.type == 'receivable' and not r.reconciled):
+                                for linea_factura in factura_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type == 'receivable' and not r.reconciled):
+                                    if (linea_gasto.debit == linea_factura.credit or linea_gasto.credit - linea_factura.debit ):
+                                        (linea_gasto | linea_factura).reconcile()
+                                        break
                         else:
                             pago_id.action_post()
+                            for linea_gasto in pago_id.move_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type == 'receivable' and not r.reconciled):
+                                for linea_factura in factura_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type == 'receivable' and not r.reconciled):
+                                    if (linea_gasto.debit == linea_factura.credit or linea_gasto.credit - linea_factura.debit ):
+                                        (linea_gasto | linea_factura).reconcile()
+                                        break
+
                         pago_id.pago_origen_id = self.id
                         pagos.append(pago_id.id)
             self.update({
