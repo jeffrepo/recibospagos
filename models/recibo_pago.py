@@ -43,10 +43,6 @@ class RaciboPago(models.Model):
     def pagar(self):
         pago_id = False
         cuentas = self.env['account.account'].search([])
-        for c in cuentas:
-            if c.user_type_id.type == 'payable':
-                logging.warning('cuenta')
-                logging.warning(c.name)
 
         if self.linea_pago_ids:
             pagos = []
