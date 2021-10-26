@@ -42,7 +42,6 @@ class RaciboPago(models.Model):
 
     def pagar(self):
         pago_id = False
-        cuentas = self.env['account.account'].search([])
 
         if self.linea_pago_ids:
             pagos = []
