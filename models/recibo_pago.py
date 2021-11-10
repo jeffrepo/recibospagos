@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models, fields, api
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError
 from datetime import datetime
 from odoo.release import version_info
 import logging
@@ -22,7 +23,10 @@ class RaciboPago(models.Model):
         ('validado', 'Validado'),
         ], string='Estado', readonly=True, copy=False, index=True, track_visibility='onchange', default='nuevo')
     pago_id = fields.Many2one('account.payment','Pago')
-    numero_recibo = fields.Char('Número de recibo')
+    numero_recibo = fields.Char('Número de recibo', required=True)
+    cobrador_id = fields.Many2one('hr.employee','Cobrador')
+    forma_pago = fields.Selection([ ('efectivo', 'Efectivo'),('tarjeta','Tarjeta'),
+        ('cheque', 'Cheque'),('transferencia','Transferencia')],'Forma de pago')
 
     @api.depends('linea_pago_ids.pago')
     def _calcular_total(self):
@@ -38,10 +42,18 @@ class RaciboPago(models.Model):
         if self.pago_ids:
             for linea in self.pago_ids:
                 linea.action_draft()
+                if version_info[0] == 13:
+                    linea.cancel()
+                else:
+                    linea.action_cancel()
             self.estado = 'nuevo'
 
     def pagar(self):
         pago_id = False
+        if self.numero_recibo:
+            recibo_ids = self.env['recibo.pago'].search([('id','!=',self.id),('numero_recibo','=',self.numero_recibo)])
+            if recibo_ids:
+                raise UserError(_('Número de recibo repetido.'))
 
         if self.linea_pago_ids:
             pagos = []
