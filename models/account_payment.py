@@ -10,7 +10,7 @@ class AccountPayment(models.Model):
     # empleado_id = fields.Many2one('hr.employee','Empleado')
     pago_liquidacion_ids = fields.One2many('recibo.pago' if version_info[0] == 13 else 'account.payment',
         'pago_id' if version_info[0] == 13 else 'pago_origen_id',
-        domain="[('estado', 'in', 'validado'),('pago_id','=',False)]" if version_info[0] == 13 else "[('state','=','posted'),('pago_origen_id','!=',False)]" ,string="Pagos")
+        domain="[('estado', '=', 'validado'),('pago_id','=',False)]" if version_info[0] == 13 else "[('state','=','posted'),('pago_origen_id','!=',False)]" ,string="Pagos")
 
     @api.onchange('pago_liquidacion_ids')
     def onchange_pago_liquidacion_ids(self):
