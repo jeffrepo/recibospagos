@@ -11,7 +11,6 @@ class RaciboPago(models.Model):
     _rec_name = 'cliente_id'
 
     cliente_id = fields.Many2one('res.partner','Cliente', required=True)
-    empleado_id = fields.Many2one('hr.employee','Empleado')
     pagar_todas = fields.Boolean('Pagar todas')
     pago_ids = fields.One2many('account.payment','pago_origen_id',string='Pago',readonly=True)
     diario_id = fields.Many2one('account.journal','Diario')
