@@ -14,7 +14,7 @@
     'category': 'Uncategorized',
     'version': '0.1',
 
-    'depends': ['account'],
+    'depends': ['account','hr'],
 
     'data': [
         'views/account_payment_view.xml',

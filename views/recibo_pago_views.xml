@@ -21,10 +21,12 @@
                             <group>
                                 <field name="fecha" attrs="{'readonly':[('estado','=','validado')]}"/>
                                 <field name="diario_id" domain="[('type', '=', 'bank')]" attrs="{'readonly':[('estado','=','validado')]}"/>
+                                <field name="cobrador_id" attrs="{'readonly':[('estado','=','validado')]}"/>
                             </group>
                             <group>
                                 <!-- <field name="empleado_id"/> -->
-                                <field name="numero_recibo"/>
+                                <field name="numero_recibo" attrs="{'readonly':[('estado','=','validado')]}"/>
+                                <field name="forma_pago" attrs="{'readonly':[('estado','=','validado')]}"/>
                                 <field name="pagar_todas" attrs="{'readonly':[('estado','=','validado')]}"/>
                             </group>
                         </group>
