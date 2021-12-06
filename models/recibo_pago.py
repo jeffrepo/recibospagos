@@ -55,7 +55,7 @@ class RaciboPago(models.Model):
                 raise UserError(_('Número de recibo repetido.'))
 
         if self.linea_pago_ids:
-            pagos = []
+            # pagos = []
             existe_pago = self.env['account.payment'].search([('pago_origen_id','=',self.id),('state','=','posted')])
             if len(existe_pago) == 0:
                 for linea in self.linea_pago_ids:
@@ -88,15 +88,20 @@ class RaciboPago(models.Model):
                                         (linea_gasto | linea_factura).reconcile()
                                         break
                         else:
+                            logging.warning('POST1')
                             pago_id.action_post()
                             for linea_gasto in pago_id.move_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type == 'receivable' and not r.reconciled):
+                                logging.warning('1')
                                 for linea_factura in factura_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type == 'receivable' and not r.reconciled):
+                                    logging.warning('2')
                                     if (linea_gasto.debit == linea_factura.credit or linea_gasto.credit - linea_factura.debit ):
+                                        logging.warning('3')
                                         (linea_gasto | linea_factura).reconcile()
+                                        logging.warning('4')
                                         break
 
-                        pago_id.pago_origen_id = self.id
-                        pagos.append(pago_id.id)
+                        pago_id.update({'pago_origen_id': self.id})
+                        # pagos.append(pago_id.id)
             self.update({
                 'estado':  'validado',
             })
