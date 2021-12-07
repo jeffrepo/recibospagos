@@ -38,8 +38,8 @@ class RaciboPago(models.Model):
             })
 
     def cancelar_pagos(self):
-        if self.pago_ids:
-            for linea in self.pago_ids:
+        if self.linea_pago_ids:
+            for linea in self.linea_pago_ids:
                 linea.action_draft()
                 if version_info[0] == 13:
                     linea.cancel()
