@@ -12,26 +12,26 @@ class RaciboPago(models.Model):
 
     cliente_id = fields.Many2one('res.partner','Cliente', required=True)
     pagar_todas = fields.Boolean('Pagar todas')
-    pago_ids = fields.One2many('account.payment','pago_origen_id',string='Pago',readonly=True)
     diario_id = fields.Many2one('account.journal','Diario')
     fecha = fields.Date('Fecha')
-    linea_pago_ids = fields.One2many('recibo.pago.linea','recibo_id',string='Lineas')
+    linea_recibo_ids = fields.One2many('recibo.pago.linea','recibo_id',string='Lineas recibos')
+    linea_pago_ids = fields.One2many('account.payment','recibo_id',string='Lineas pagos',readonly=True)
     total = fields.Float(string='Total',store=True, readonly=True, compute='_calcular_total')
     estado = fields.Selection([
         ('nuevo', 'Nuevo'),
         ('validado', 'Validado'),
         ], string='Estado', readonly=True, copy=False, index=True, track_visibility='onchange', default='nuevo')
-    pago_id = fields.Many2one('account.payment','Pago')
+    transferencia_id = fields.Many2one('account.payment','Transferencia')
     numero_recibo = fields.Char('Número de recibo', required=True)
     cobrador_id = fields.Many2one('hr.employee','Cobrador')
     forma_pago = fields.Selection([ ('efectivo', 'Efectivo'),('tarjeta','Tarjeta'),
         ('cheque', 'Cheque'),('transferencia','Transferencia')],'Forma de pago')
 
-    @api.depends('linea_pago_ids.pago')
+    @api.depends('linea_recibo_ids.pago')
     def _calcular_total(self):
         for pago in self:
             total = 0
-            for linea in pago.linea_pago_ids:
+            for linea in pago.linea_recibo_ids:
                 total += linea.pago
             pago.update({
                 'total': total,
@@ -54,52 +54,50 @@ class RaciboPago(models.Model):
             if recibo_ids:
                 raise UserError(_('Número de recibo repetido.'))
 
-        if self.linea_pago_ids:
-            # pagos = []
-            existe_pago = self.env['account.payment'].search([('pago_origen_id','=',self.id),('state','=','posted')])
-            if len(existe_pago) == 0:
-                for linea in self.linea_pago_ids:
-                    if linea.pago > 0 and linea.pago <= linea.saldo:
-                        factura_id = False
-                        if linea.factura_id.source_id:
-                            factura_original_id = self.env['account.move'].search([('source_id','=',linea.factura_id.source_id.id)])
-                            factura_id = factura_original_id
-                        else:
-                            factura_id = linea.factura_id
+        pagos = []
+        existe_pago = self.env['account.payment'].search([('recibo_id','=',self.id),('state','=','posted')])
+        if len(existe_pago) == 0:
+            for linea in self.linea_recibo_ids:
+                if linea.pago > 0 and linea.pago <= linea.saldo:
+                    factura_id = False
+                    if linea.factura_id.source_id:
+                        factura_original_id = self.env['account.move'].search([('source_id','=',linea.factura_id.source_id.id)])
+                        factura_id = factura_original_id
+                    else:
+                        factura_id = linea.factura_id
 
-                        pago_dic = {'amount': linea.pago,
-                                    'partner_id': self.cliente_id.id,
-                                    'partner_type': 'customer',
-                                    'payment_type': 'inbound',
-                                    'journal_id': self.diario_id.id,
-                                    'payment_method_id': 1}
+                    pago_dic = {'amount': linea.pago,
+                                'partner_id': self.cliente_id.id,
+                                'partner_type': 'customer',
+                                'payment_type': 'inbound',
+                                'journal_id': self.diario_id.id,
+                                'payment_method_id': 1}
 
-                        if version_info[0] == 13:
-                            pago_dic['payment_date'] = self.fecha
-                        else:
-                            pago_dic['date'] = self.fecha
+                    if version_info[0] == 13:
+                        pago_dic['payment_date'] = self.fecha
+                    else:
+                        pago_dic['date'] = self.fecha
 
-                        pago_id= self.env['account.payment'].create(pago_dic)
-                        if version_info[0] == 13:
-                            pago_id.post()
-                            for linea_gasto in pago_id.move_line_ids.filtered(lambda r: r.account_id.user_type_id.type == 'receivable' and not r.reconciled):
-                                for linea_factura in factura_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type == 'receivable' and not r.reconciled):
-                                    if (linea_gasto.debit == linea_factura.credit or linea_gasto.credit - linea_factura.debit ):
-                                        (linea_gasto | linea_factura).reconcile()
-                                        break
-                        else:
-                            pago_id.action_post()
-                            for linea_gasto in pago_id.move_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type == 'receivable' and not r.reconciled):
-                                for linea_factura in factura_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type == 'receivable' and not r.reconciled):
-                                    if (linea_gasto.debit == linea_factura.credit or linea_gasto.credit - linea_factura.debit ):
-                                        (linea_gasto | linea_factura).reconcile()
-                                        break
+                    pago_id= self.env['account.payment'].create(pago_dic)
+                    if version_info[0] == 13:
+                        pago_id.post()
+                        for linea_gasto in pago_id.move_line_ids.filtered(lambda r: r.account_id.user_type_id.type == 'receivable' and not r.reconciled):
+                            for linea_factura in factura_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type == 'receivable' and not r.reconciled):
+                                if (linea_gasto.debit == linea_factura.credit or linea_gasto.credit - linea_factura.debit ):
+                                    (linea_gasto | linea_factura).reconcile()
+                                    break
+                    else:
+                        pago_id.action_post()
+                        for linea_gasto in pago_id.move_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type == 'receivable' and not r.reconciled):
+                            for linea_factura in factura_id.line_ids.filtered(lambda r: r.account_id.user_type_id.type == 'receivable' and not r.reconciled):
+                                if (linea_gasto.debit == linea_factura.credit or linea_gasto.credit - linea_factura.debit ):
+                                    (linea_gasto | linea_factura).reconcile()
+                                    break
 
-                        pago_id.update({'pago_origen_id': self.id})
-                        # pagos.append(pago_id.id)
-            self.update({
-                'estado':  'validado',
-            })
+                    pago_id.recibo_id = self.id
+        self.update({
+            'estado':  'validado',
+        })
         return True
 
     @api.onchange('cliente_id')
@@ -116,14 +114,14 @@ class RaciboPago(models.Model):
                     facturas.append((0,0,{'factura_id': factura}))
 
                 self.write({
-                    'linea_pago_ids' : [(5, 0, 0)],
+                    'linea_recibo_ids' : [(5, 0, 0)],
                 })
-                self.write({'linea_pago_ids' : facturas})
+                self.write({'linea_recibo_ids' : facturas})
 
     @api.onchange('pagar_todas')
     def onchange_pagar_todas(self):
-        if self.linea_pago_ids:
-            for linea in self.linea_pago_ids:
+        if self.linea_recibo_ids:
+            for linea in self.linea_recibo_ids:
                 linea.pago = linea.saldo
                 linea.pagar_completa = True
 

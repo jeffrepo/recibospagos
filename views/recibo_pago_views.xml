@@ -24,7 +24,6 @@
                                 <field name="cobrador_id" attrs="{'readonly':[('estado','=','validado')]}"/>
                             </group>
                             <group>
-                                <!-- <field name="empleado_id"/> -->
                                 <field name="numero_recibo" attrs="{'readonly':[('estado','=','validado')]}"/>
                                 <field name="forma_pago" attrs="{'readonly':[('estado','=','validado')]}"/>
                                 <field name="pagar_todas" attrs="{'readonly':[('estado','=','validado')]}"/>
@@ -32,23 +31,19 @@
                         </group>
                         <notebook>
                             <page string="Facturas" name="recibopago_facturas">
-                                <group>
-                                    <field name="linea_pago_ids" mode="tree" attrs="{'readonly':[('estado','=','validado')]}">
-                                        <tree string="Lineas" editable="bottom">
-                                            <field name="factura_id"/>
-                                            <field name="fecha_factura"/>
-                                            <field name="total" sum="Total"/>
-                                            <field name="saldo"/>
-                                            <field name="pago" sum="Total"/>
-                                            <field name="pagar_completa"/>
-                                        </tree>
-                                    </field>
-                                </group>
+                                <field name="linea_recibo_ids" mode="tree" attrs="{'readonly':[('estado','=','validado')]}">
+                                    <tree editable="bottom">
+                                        <field name="factura_id"/>
+                                        <field name="fecha_factura"/>
+                                        <field name="total" sum="Total"/>
+                                        <field name="saldo"/>
+                                        <field name="pago" sum="Total"/>
+                                        <field name="pagar_completa"/>
+                                    </tree>
+                                </field>
                             </page>
                             <page string="Pagos" name="recibopago_pagos">
-                                <group>
-                                    <field name="pago_ids"/>
-                                </group>
+                                <field name="linea_pago_ids"/>
                             </page>
                         </notebook>
                     </sheet>
@@ -64,11 +59,9 @@
             <field name="arch" type="xml">
                 <tree string="Pagos">
                     <field name="cliente_id"/>
-                    <!-- <field name="empleado_id"/> -->
                     <field name="diario_id"/>
                     <field name="fecha"/>
                     <field name="total"/>
-                    <!-- <field name="pago_id"/> -->
                 </tree>
             </field>
         </record>
