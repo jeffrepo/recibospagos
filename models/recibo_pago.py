@@ -122,8 +122,12 @@ class RaciboPago(models.Model):
     def onchange_pagar_todas(self):
         if self.linea_recibo_ids:
             for linea in self.linea_recibo_ids:
-                linea.pago = linea.saldo
-                linea.pagar_completa = True
+                if self.pagar_todas:
+                    linea.pago = linea.saldo
+                    linea.pagar_completa = True
+                else:
+                    linea.pago = 0
+                    linea.pagar_completa = False
 
 class ReciboPagoLinea(models.Model):
     _name = 'recibo.pago.linea'
@@ -158,4 +162,7 @@ class ReciboPagoLinea(models.Model):
     @api.onchange('pagar_completa')
     def onchange_pagar_completa(self):
         for linea in self:
-            linea.pago = linea.saldo
+            if linea.pagar_completa:
+                linea.pago = linea.saldo
+            else:
+                linea.pago = 0
